@@ -99,6 +99,24 @@ ClauseMap = Dict[str, List[Clause]]
 CLAUSE_PREFIX_PATTERN = re.compile(r"^(?:clause|section)\s+\d+[\w .-]*:?$", re.IGNORECASE)
 UPPERCASE_HEADING_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9 .,:;/-]{3,}$")
 NUMERIC_HEADING_PATTERN = re.compile(r"^(?P<num>\d+(?:\.\d+)*)\s+(?P<rest>.+)$")
+SENTENCE_SPLIT_PATTERN = re.compile(r"(?<=[.!?])\s+")
+
+
+def _split_sentences(text: str) -> List[str]:
+    """Lightweight sentence splitter used for change summaries."""
+    text = text.strip()
+    if not text:
+        return []
+    raw_segments = SENTENCE_SPLIT_PATTERN.split(text)
+    sentences: List[str] = []
+    for segment in raw_segments:
+        stripped = segment.strip()
+        if stripped:
+            sentences.append(stripped)
+    if sentences:
+        return sentences
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines
 
 
 def _looks_like_heading_text(text: str) -> bool:
@@ -289,6 +307,13 @@ def format_result(result: ComparisonResult) -> str:
     )
 
     def _summarize_change(change: Dict[str, str]) -> str:
+        doc_one_sentences = _split_sentences(change["doc_one"])
+        doc_two_sentences = _split_sentences(change["doc_two"])
+        for delta in difflib.ndiff(doc_one_sentences, doc_two_sentences):
+            if delta.startswith("+ "):
+                sentence = delta[2:].strip()
+                if sentence:
+                    return sentence
         diff_lines = change["diff"].splitlines()
         for line in diff_lines:
             if line.startswith("+") and not line.startswith("+++"):

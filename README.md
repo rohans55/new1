@@ -110,6 +110,9 @@ What changed:
      This agreement covers how we will work together and collaborate.
   2. Clause 3: Termination
      Either party may terminate with 15 days notice.
+
+The `What changed` section shows only the altered sentence from document 2 so you
+can read the exact new wording without scanning the entire clause.
 ```
 
 ## How the detection works
