@@ -128,8 +128,9 @@ Same heading but content changed:
 - Headings are normalized (lowercase, punctuation removed) to match similar
   headings even when formatted differently (`Clause 1:` vs `clause 1`), and
   pure numbering differences (e.g., `16.` vs `17.`) are ignored when matching.
-- Clause bodies are compared after trimming whitespace so that small formatting
-  differences do not matter.
+- Clause bodies plus the descriptive portion of each heading are compared (after
+  trimming whitespace) so that inline sentences such as `16.1 ...` still count
+  as clause content, while minor spacing differences do not matter.
 
 ## Troubleshooting
 

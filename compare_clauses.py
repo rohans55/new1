@@ -56,15 +56,64 @@ class Clause:
         body = re.sub(r"\s+", " ", body)
         return body.lower()
 
+    def _heading_without_numbers(self) -> str:
+        """Remove numbering/prefixes that are not useful for comparisons."""
+        heading = self.heading.strip()
+        heading = re.sub(
+            r"^(?:clause|section)\s+\d+(?:\.\d+)*[:.)-]?\s*",
+            "",
+            heading,
+            flags=re.IGNORECASE,
+        )
+        heading = re.sub(r"^\d+(?:\.\d+)*[:.)-]?\s*", "", heading)
+        return heading.strip()
+
+    def comparison_text(self) -> str:
+        """Return the text (heading core + body) used for change detection."""
+        parts: List[str] = []
+        heading_core = self._heading_without_numbers()
+        if heading_core:
+            parts.append(heading_core)
+        body_text = self.body.strip()
+        if body_text:
+            parts.append(body_text)
+        return "\n".join(parts).strip()
+
+    def normalized_content(self) -> str:
+        """Return a normalized string used to detect content changes."""
+        content = self.comparison_text()
+        content = re.sub(r"\s+", " ", content)
+        return content.lower()
+
+    def content_lines(self) -> List[str]:
+        """Return the comparison text split into lines for diff output."""
+        content = self.comparison_text()
+        if not content:
+            return []
+        return content.splitlines()
+
 
 ClauseMap = Dict[str, List[Clause]]
 
 
-HEADING_PATTERNS: Sequence[re.Pattern[str]] = (
-    re.compile(r"^(?:clause|section)\s+\d+[\w .-]*:?$", re.IGNORECASE),
-    re.compile(r"^\d+(?:\.\d+)*\s+.+$"),
-    re.compile(r"^[A-Z0-9][A-Z0-9 .,:;/-]{3,}$"),
-)
+CLAUSE_PREFIX_PATTERN = re.compile(r"^(?:clause|section)\s+\d+[\w .-]*:?$", re.IGNORECASE)
+UPPERCASE_HEADING_PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9 .,:;/-]{3,}$")
+NUMERIC_HEADING_PATTERN = re.compile(r"^(?P<num>\d+(?:\.\d+)*)\s+(?P<rest>.+)$")
+
+
+def _looks_like_heading_text(text: str) -> bool:
+    """Heuristically decide if the trailing text resembles a heading."""
+    stripped = text.strip()
+    if not stripped:
+        return False
+    words = stripped.split()
+    if len(words) <= 12 and len(stripped) <= 80:
+        return True
+    alpha_chars = [char for char in stripped if char.isalpha()]
+    if not alpha_chars:
+        return True
+    upper_ratio = sum(char.isupper() for char in alpha_chars) / len(alpha_chars)
+    return upper_ratio >= 0.7
 
 
 def is_probable_heading(line: str) -> bool:
@@ -72,7 +121,14 @@ def is_probable_heading(line: str) -> bool:
     stripped = line.strip()
     if not stripped:
         return False
-    return any(pattern.match(stripped) for pattern in HEADING_PATTERNS)
+    if CLAUSE_PREFIX_PATTERN.match(stripped):
+        return True
+    if UPPERCASE_HEADING_PATTERN.match(stripped):
+        return True
+    numeric_match = NUMERIC_HEADING_PATTERN.match(stripped)
+    if numeric_match and _looks_like_heading_text(numeric_match.group("rest")):
+        return True
+    return False
 
 
 def parse_clauses(text: str) -> ClauseMap:
@@ -160,11 +216,11 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
                 continue
 
             second_clause = second_clauses[idx]
-            if first_clause.normalized_body() != second_clause.normalized_body():
+            if first_clause.normalized_content() != second_clause.normalized_content():
                 diff = "\n".join(
                     difflib.unified_diff(
-                        first_clause.body.splitlines(),
-                        second_clause.body.splitlines(),
+                        first_clause.content_lines(),
+                        second_clause.content_lines(),
                         fromfile="doc_one",
                         tofile="doc_two",
                         lineterm="",
