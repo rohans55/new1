@@ -133,6 +133,7 @@ def read_document(path: Path) -> str:
 class ComparisonResult:
     missing_from_doc_two: List[Clause]
     additional_in_doc_two: List[Clause]
+    reordered: List[Dict[str, int]]
     changed: List[Dict[str, str]]
 
 
@@ -140,6 +141,7 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
     """Compare two clause maps with document one treated as the reference."""
     missing_from_doc_two: List[Clause] = []
     changed: List[Dict[str, str]] = []
+    reordered: List[Dict[str, int]] = []
 
     for heading_key, first_clauses in first.items():
         second_clauses = second.get(heading_key)
@@ -153,6 +155,14 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
                 continue
 
             second_clause = second_clauses[idx]
+            if first_clause.index != second_clause.index:
+                reordered.append(
+                    {
+                        "heading": first_clause.heading,
+                        "doc_one_position": first_clause.index + 1,
+                        "doc_two_position": second_clause.index + 1,
+                    }
+                )
             if first_clause.normalized_body() != second_clause.normalized_body():
                 diff = "\n".join(
                     difflib.unified_diff(
@@ -181,6 +191,7 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
     return ComparisonResult(
         missing_from_doc_two=missing_from_doc_two,
         additional_in_doc_two=additional_in_doc_two,
+        reordered=reordered,
         changed=changed,
     )
 
@@ -189,7 +200,23 @@ def format_result(result: ComparisonResult) -> str:
     """Create a readable, beginner-friendly summary."""
     lines: List[str] = []
 
-    def _format_clause_list(label: str, clauses: Iterable[Clause]) -> None:
+    lines.append("CLAUSE COMPARISON REPORT")
+    lines.append("=" * 27)
+    lines.append("Document 2 vs Document 1 overview:")
+    lines.append(
+        f"  - Missing clauses (only in doc 1): {len(result.missing_from_doc_two)}"
+    )
+    lines.append(
+        f"  - Extra clauses (only in doc 2): {len(result.additional_in_doc_two)}"
+    )
+    lines.append(
+        f"  - Reordered clauses: {len(result.reordered)}"
+    )
+    lines.append(
+        f"  - Content changes: {len(result.changed)}"
+    )
+
+    def _format_clause_list(label: str, clauses: Iterable[Clause], doc_label: str) -> None:
         clauses = list(clauses)
         if not clauses:
             lines.append(f"{label}: none")
@@ -197,21 +224,36 @@ def format_result(result: ComparisonResult) -> str:
         lines.append(f"{label}:")
         for clause in clauses:
             snippet = clause.body[:80].replace("\n", " ")
-            lines.append(f"  - {clause.heading} (starts at clause #{clause.index + 1}): {snippet}...")
+            lines.append(
+                f"  - {clause.heading} ({doc_label} clause #{clause.index + 1}): {snippet}..."
+            )
 
-    lines.append("CLAUSE COMPARISON REPORT")
-    lines.append("=" * 27)
     _format_clause_list(
         "Missing in document 2 (present in document 1)",
         result.missing_from_doc_two,
+        "doc 1",
     )
     _format_clause_list(
-        "Additional in document 2 (not in document 1)",
+        "Additional clauses only in document 2",
         result.additional_in_doc_two,
+        "doc 2",
     )
 
+    if result.reordered:
+        lines.append("Same heading but moved in document 2 (order changed):")
+        for entry in result.reordered:
+            lines.append(
+                "  - {heading}: doc 1 position #{doc1} -> doc 2 position #{doc2}".format(
+                    heading=entry["heading"],
+                    doc1=entry["doc_one_position"],
+                    doc2=entry["doc_two_position"],
+                )
+            )
+    else:
+        lines.append("Same heading but moved in document 2: none")
+
     if result.changed:
-        lines.append("Changed clauses:")
+        lines.append("Same heading but content changed:")
         for idx, change in enumerate(result.changed, start=1):
             lines.append(f"  {idx}. {change['heading']}")
             lines.append("     Diff:")
@@ -219,7 +261,7 @@ def format_result(result: ComparisonResult) -> str:
             for diff_line in diff_lines:
                 lines.append(f"       {diff_line}")
     else:
-        lines.append("Changed clauses: none")
+        lines.append("Same heading but content changed: none")
 
     return "\n".join(lines)
 
@@ -257,6 +299,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "additional_in_doc_two": [
                 clause.heading for clause in result.additional_in_doc_two
             ],
+            "reordered": result.reordered,
             "changed": result.changed,
         }
         print(json.dumps(payload, indent=2))
