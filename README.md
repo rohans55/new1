@@ -16,7 +16,6 @@ code is heavily commented and the README walks you through every step.
 5. Prints a clear report that shows:
    - Clauses that exist in document one but are missing in document two.
    - Clauses that appear only in document two (extra clauses).
-   - Clauses that moved to a different position in document two.
    - Clauses that exist in both files but have different wording (with a diff).
 
 ## Requirements
@@ -98,13 +97,11 @@ CLAUSE COMPARISON REPORT
 Document 2 vs Document 1 overview:
   - Missing clauses (only in doc 1): 1
   - Extra clauses (only in doc 2): 1
-  - Reordered clauses: 0
   - Content changes: 2
 Missing in document 2 (present in document 1):
   - Clause 2: Payment (doc 1 clause #2): Invoices are due within 30 days...
 Additional clauses only in document 2:
   - Clause 4: Governing Law (doc 2 clause #3): This contract follows the laws of California....
-Same heading but moved in document 2: none
 Same heading but content changed:
   1. Clause 1: Introduction
      Diff:

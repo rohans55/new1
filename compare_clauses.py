@@ -133,7 +133,6 @@ def read_document(path: Path) -> str:
 class ComparisonResult:
     missing_from_doc_two: List[Clause]
     additional_in_doc_two: List[Clause]
-    reordered: List[Dict[str, int]]
     changed: List[Dict[str, str]]
 
 
@@ -141,7 +140,6 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
     """Compare two clause maps with document one treated as the reference."""
     missing_from_doc_two: List[Clause] = []
     changed: List[Dict[str, str]] = []
-    reordered: List[Dict[str, int]] = []
 
     for heading_key, first_clauses in first.items():
         second_clauses = second.get(heading_key)
@@ -155,14 +153,6 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
                 continue
 
             second_clause = second_clauses[idx]
-            if first_clause.index != second_clause.index:
-                reordered.append(
-                    {
-                        "heading": first_clause.heading,
-                        "doc_one_position": first_clause.index + 1,
-                        "doc_two_position": second_clause.index + 1,
-                    }
-                )
             if first_clause.normalized_body() != second_clause.normalized_body():
                 diff = "\n".join(
                     difflib.unified_diff(
@@ -191,7 +181,6 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
     return ComparisonResult(
         missing_from_doc_two=missing_from_doc_two,
         additional_in_doc_two=additional_in_doc_two,
-        reordered=reordered,
         changed=changed,
     )
 
@@ -208,9 +197,6 @@ def format_result(result: ComparisonResult) -> str:
     )
     lines.append(
         f"  - Extra clauses (only in doc 2): {len(result.additional_in_doc_two)}"
-    )
-    lines.append(
-        f"  - Reordered clauses: {len(result.reordered)}"
     )
     lines.append(
         f"  - Content changes: {len(result.changed)}"
@@ -238,19 +224,6 @@ def format_result(result: ComparisonResult) -> str:
         result.additional_in_doc_two,
         "doc 2",
     )
-
-    if result.reordered:
-        lines.append("Same heading but moved in document 2 (order changed):")
-        for entry in result.reordered:
-            lines.append(
-                "  - {heading}: doc 1 position #{doc1} -> doc 2 position #{doc2}".format(
-                    heading=entry["heading"],
-                    doc1=entry["doc_one_position"],
-                    doc2=entry["doc_two_position"],
-                )
-            )
-    else:
-        lines.append("Same heading but moved in document 2: none")
 
     if result.changed:
         lines.append("Same heading but content changed:")
@@ -299,7 +272,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             "additional_in_doc_two": [
                 clause.heading for clause in result.additional_in_doc_two
             ],
-            "reordered": result.reordered,
             "changed": result.changed,
         }
         print(json.dumps(payload, indent=2))
