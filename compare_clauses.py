@@ -288,6 +288,19 @@ def format_result(result: ComparisonResult) -> str:
         "doc 2",
     )
 
+    def _summarize_change(change: Dict[str, str]) -> str:
+        diff_lines = change["diff"].splitlines()
+        for line in diff_lines:
+            if line.startswith("+") and not line.startswith("+++"):
+                text = line[1:].strip()
+                if text:
+                    return text
+        for text in change["doc_two"].splitlines():
+            stripped = text.strip()
+            if stripped:
+                return stripped
+        return "(unable to summarize change)"
+
     if result.changed:
         lines.append("Same heading but content changed:")
         for change in result.changed:
@@ -298,11 +311,9 @@ def format_result(result: ComparisonResult) -> str:
     if result.changed:
         lines.append("What changed:")
         for idx, change in enumerate(result.changed, start=1):
-            doc_one_text = change["doc_one"].strip() or "(empty)"
-            doc_two_text = change["doc_two"].strip() or "(empty)"
+            summary = _summarize_change(change)
             lines.append(f"  {idx}. {change['heading']}")
-            lines.append(f"     doc 1: {doc_one_text}")
-            lines.append(f"     doc 2: {doc_two_text}")
+            lines.append(f"     {summary}")
     else:
         lines.append("What changed: none")
 

@@ -107,11 +107,9 @@ Same heading but content changed:
   - Clause 3: Termination
 What changed:
   1. Clause 1: Introduction
-     doc 1: This agreement covers how we will work together.
-     doc 2: This agreement covers how we will work together and collaborate.
+     This agreement covers how we will work together and collaborate.
   2. Clause 3: Termination
-     doc 1: Either party may terminate with 30 days written notice.
-     doc 2: Either party may terminate with 15 days notice.
+     Either party may terminate with 15 days notice.
 ```
 
 ## How the detection works
