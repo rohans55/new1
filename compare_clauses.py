@@ -290,6 +290,13 @@ def format_result(result: ComparisonResult) -> str:
 
     if result.changed:
         lines.append("Same heading but content changed:")
+        for change in result.changed:
+            lines.append(f"  - {change['heading']}")
+    else:
+        lines.append("Same heading but content changed: none")
+
+    if result.changed:
+        lines.append("What changed (details):")
         for idx, change in enumerate(result.changed, start=1):
             lines.append(f"  {idx}. {change['heading']}")
             lines.append("     Diff:")
@@ -297,7 +304,7 @@ def format_result(result: ComparisonResult) -> str:
             for diff_line in diff_lines:
                 lines.append(f"       {diff_line}")
     else:
-        lines.append("Same heading but content changed: none")
+        lines.append("What changed: none")
 
     return "\n".join(lines)
 

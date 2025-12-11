@@ -103,6 +103,9 @@ Missing in document 2 (present in document 1):
 Additional clauses only in document 2:
   - Clause 4: Governing Law (doc 2 clause #3): This contract follows the laws of California....
 Same heading but content changed:
+  - Clause 1: Introduction
+  - Clause 3: Termination
+What changed (details):
   1. Clause 1: Introduction
      Diff:
        --- doc_one
