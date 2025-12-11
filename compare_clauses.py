@@ -41,7 +41,14 @@ class Clause:
         """Return a case/format-insensitive token for matching clauses."""
         heading = self.heading.lower()
         heading = re.sub(r"[^a-z0-9]+", " ", heading)
-        return heading.strip()
+        tokens = []
+        for token in heading.split():
+            if re.fullmatch(r"\d+(?:\.\d+)*", token):
+                continue
+            tokens.append(token)
+        cleaned = " ".join(tokens) if tokens else heading
+        cleaned = re.sub(r"\s+", " ", cleaned)
+        return cleaned.strip()
 
     def normalized_body(self) -> str:
         """Normalize clause body for equality checks."""

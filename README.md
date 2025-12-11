@@ -126,7 +126,8 @@ Same heading but content changed:
 - The script groups the lines that follow the heading as the clause body until
   the next heading is encountered.
 - Headings are normalized (lowercase, punctuation removed) to match similar
-  headings even when formatted differently (`Clause 1:` vs `clause 1`).
+  headings even when formatted differently (`Clause 1:` vs `clause 1`), and
+  pure numbering differences (e.g., `16.` vs `17.`) are ignored when matching.
 - Clause bodies are compared after trimming whitespace so that small formatting
   differences do not matter.
 
