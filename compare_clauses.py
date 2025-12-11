@@ -34,6 +34,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     PdfReader = None  # type: ignore
 
+try:
+    from openpyxl import Workbook  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    Workbook = None  # type: ignore
+
 
 @dataclass
 class Clause:
@@ -123,6 +128,28 @@ def _split_sentences(text: str) -> List[str]:
         return sentences
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return lines
+
+
+def summarize_change(change: Dict[str, str]) -> str:
+    """Return a single-line summary describing what changed in doc two."""
+    doc_one_sentences = _split_sentences(change["doc_one"])
+    doc_two_sentences = _split_sentences(change["doc_two"])
+    for delta in difflib.ndiff(doc_one_sentences, doc_two_sentences):
+        if delta.startswith("+ "):
+            sentence = delta[2:].strip()
+            if sentence:
+                return sentence
+    diff_lines = change["diff"].splitlines()
+    for line in diff_lines:
+        if line.startswith("+") and not line.startswith("+++"):
+            text = line[1:].strip()
+            if text:
+                return text
+    for text in change["doc_two"].splitlines():
+        stripped = text.strip()
+        if stripped:
+            return stripped
+    return "(unable to summarize change)"
 
 
 def _looks_like_heading_text(text: str) -> bool:
@@ -325,26 +352,6 @@ def format_result(result: ComparisonResult) -> str:
         "doc 2",
     )
 
-    def _summarize_change(change: Dict[str, str]) -> str:
-        doc_one_sentences = _split_sentences(change["doc_one"])
-        doc_two_sentences = _split_sentences(change["doc_two"])
-        for delta in difflib.ndiff(doc_one_sentences, doc_two_sentences):
-            if delta.startswith("+ "):
-                sentence = delta[2:].strip()
-                if sentence:
-                    return sentence
-        diff_lines = change["diff"].splitlines()
-        for line in diff_lines:
-            if line.startswith("+") and not line.startswith("+++"):
-                text = line[1:].strip()
-                if text:
-                    return text
-        for text in change["doc_two"].splitlines():
-            stripped = text.strip()
-            if stripped:
-                return stripped
-        return "(unable to summarize change)"
-
     if result.changed:
         lines.append("Same heading but content changed:")
         for change in result.changed:
@@ -355,13 +362,71 @@ def format_result(result: ComparisonResult) -> str:
     if result.changed:
         lines.append("What changed:")
         for idx, change in enumerate(result.changed, start=1):
-            summary = _summarize_change(change)
+            summary = summarize_change(change)
             lines.append(f"  {idx}. {change['heading']}")
             lines.append(f"     {summary}")
     else:
         lines.append("What changed: none")
 
     return "\n".join(lines)
+
+
+def write_excel_report(result: ComparisonResult, output_path: Path) -> None:
+    """Serialize the comparison into an Excel workbook."""
+    if Workbook is None:
+        raise RuntimeError(
+            "openpyxl is required for Excel export. "
+            "Install it with `pip install openpyxl`."
+        )
+
+    workbook = Workbook()
+
+    summary_sheet = workbook.active
+    summary_sheet.title = "Summary"
+    summary_sheet.append(["Metric", "Count"])
+    summary_sheet.append(["Missing in doc 2", len(result.missing_from_doc_two)])
+    summary_sheet.append(["Additional in doc 2", len(result.additional_in_doc_two)])
+    summary_sheet.append(["Content changes", len(result.changed)])
+
+    def _populate_clause_sheet(title: str, clauses: List[Clause], doc_label: str) -> None:
+        sheet = workbook.create_sheet(title=title)
+        sheet.append(["Heading", "Document origin", "Clause number", "Preview"])
+        for clause in clauses:
+            preview = clause.body.strip().replace("\n", " ")[:200]
+            sheet.append(
+                [
+                    clause.heading,
+                    doc_label,
+                    clause.index + 1,
+                    preview,
+                ]
+            )
+
+    _populate_clause_sheet(
+        "Missing in doc 2",
+        result.missing_from_doc_two,
+        "doc 1",
+    )
+    _populate_clause_sheet(
+        "Additional in doc 2",
+        result.additional_in_doc_two,
+        "doc 2",
+    )
+
+    changes_sheet = workbook.create_sheet(title="Changed clauses")
+    changes_sheet.append(["Heading", "Doc 1 text", "Doc 2 text", "Summary"])
+    for change in result.changed:
+        summary = summarize_change(change)
+        changes_sheet.append(
+            [
+                change["heading"],
+                change["doc_one"].strip(),
+                change["doc_two"].strip(),
+                summary,
+            ]
+        )
+
+    workbook.save(str(output_path))
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -374,6 +439,11 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--json",
         action="store_true",
         help="Print the comparison result as JSON instead of plain text",
+    )
+    parser.add_argument(
+        "--excel-out",
+        type=Path,
+        help="Save the comparison report to an Excel file (.xlsx)",
     )
     return parser.parse_args(argv)
 
@@ -402,6 +472,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(payload, indent=2))
     else:
         print(format_result(result))
+
+    if args.excel_out:
+        write_excel_report(result, args.excel_out)
+        print(f"Excel report saved to {args.excel_out}")
 
     return 0
 

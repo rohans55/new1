@@ -23,6 +23,7 @@ code is heavily commented and the README walks you through every step.
 - Python 3.9 or newer already installed on your machine.
 - Optional: `python-docx` if you plan to read `.docx` files.
 - Optional: `pypdf` if you plan to read `.pdf` files.
+- Optional: `openpyxl` if you want to export the report to Excel.
 
 Install the optional dependency with:
 
@@ -32,6 +33,10 @@ pip install python-docx
 
 ```bash
 pip install pypdf
+```
+
+```bash
+pip install openpyxl
 ```
 
 ## File structure
@@ -58,6 +63,12 @@ To get machine-readable output:
 
 ```bash
 python compare_clauses.py doc_one.txt doc_two.txt --json
+```
+
+To save the full report to Excel (works with any supported input format):
+
+```bash
+python compare_clauses.py doc_one.txt doc_two.txt --excel-out report.xlsx
 ```
 
 ### Sample documents
@@ -148,5 +159,7 @@ can read the exact new wording without scanning the entire clause.
 - **`python-docx` error:** Install the dependency or convert your `.docx`
   documents to plain text.
 - **`pypdf` error:** Install the dependency or export the PDF content as text.
+- **`openpyxl` error:** Install the dependency or remove the `--excel-out`
+  option.
 - **Headings not detected:** Ensure each clause uses a clear heading as shown
   in the samples.
