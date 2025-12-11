@@ -131,25 +131,25 @@ def read_document(path: Path) -> str:
 
 @dataclass
 class ComparisonResult:
-    missing_in_second: List[Clause]
-    missing_in_first: List[Clause]
+    missing_from_doc_two: List[Clause]
+    additional_in_doc_two: List[Clause]
     changed: List[Dict[str, str]]
 
 
 def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
-    """Compare two clause maps and report missing/changed clauses."""
-    missing_in_second: List[Clause] = []
+    """Compare two clause maps with document one treated as the reference."""
+    missing_from_doc_two: List[Clause] = []
     changed: List[Dict[str, str]] = []
 
     for heading_key, first_clauses in first.items():
         second_clauses = second.get(heading_key)
         if not second_clauses:
-            missing_in_second.extend(first_clauses)
+            missing_from_doc_two.extend(first_clauses)
             continue
 
         for idx, first_clause in enumerate(first_clauses):
             if idx >= len(second_clauses):
-                missing_in_second.append(first_clause)
+                missing_from_doc_two.append(first_clause)
                 continue
 
             second_clause = second_clauses[idx]
@@ -172,15 +172,15 @@ def compare_clauses(first: ClauseMap, second: ClauseMap) -> ComparisonResult:
                     }
                 )
 
-    missing_in_first: List[Clause] = []
+    additional_in_doc_two: List[Clause] = []
     for heading_key, second_clauses in second.items():
         first_count = len(first.get(heading_key, []))
         if len(second_clauses) > first_count:
-            missing_in_first.extend(second_clauses[first_count:])
+            additional_in_doc_two.extend(second_clauses[first_count:])
 
     return ComparisonResult(
-        missing_in_second=missing_in_second,
-        missing_in_first=missing_in_first,
+        missing_from_doc_two=missing_from_doc_two,
+        additional_in_doc_two=additional_in_doc_two,
         changed=changed,
     )
 
@@ -201,8 +201,14 @@ def format_result(result: ComparisonResult) -> str:
 
     lines.append("CLAUSE COMPARISON REPORT")
     lines.append("=" * 27)
-    _format_clause_list("Missing from second document", result.missing_in_second)
-    _format_clause_list("Missing from first document", result.missing_in_first)
+    _format_clause_list(
+        "Missing in document 2 (present in document 1)",
+        result.missing_from_doc_two,
+    )
+    _format_clause_list(
+        "Additional in document 2 (not in document 1)",
+        result.additional_in_doc_two,
+    )
 
     if result.changed:
         lines.append("Changed clauses:")
@@ -245,8 +251,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.json:
         payload = {
-            "missing_in_second": [clause.heading for clause in result.missing_in_second],
-            "missing_in_first": [clause.heading for clause in result.missing_in_first],
+            "missing_from_doc_two": [
+                clause.heading for clause in result.missing_from_doc_two
+            ],
+            "additional_in_doc_two": [
+                clause.heading for clause in result.additional_in_doc_two
+            ],
             "changed": result.changed,
         }
         print(json.dumps(payload, indent=2))

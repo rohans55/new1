@@ -12,10 +12,10 @@ code is heavily commented and the README walks you through every step.
    - `2.0 Background`
    - `SECTION 5 – TERMINATION`
 3. Groups everything after each heading as the body of that clause.
-4. Compares the clauses from the first document with those in the second one.
+4. Treats the first document as the reference copy.
 5. Prints a clear report that shows:
-   - Clauses that exist in document one but not document two.
-   - Clauses found only in document two.
+   - Clauses that exist in document one but are missing in document two.
+   - Clauses that appear only in document two (extra clauses).
    - Clauses that exist in both files but have different wording (with a diff).
 
 ## Requirements
@@ -94,9 +94,9 @@ Output:
 ```
 CLAUSE COMPARISON REPORT
 ===========================
-Missing from second document:
+Missing in document 2 (present in document 1):
   - Clause 2: Payment (starts at clause #2): Invoices are due within 30 days...
-Missing from first document:
+Additional in document 2 (not in document 1):
   - Clause 4: Governing Law (starts at clause #3): This contract follows the laws of California....
 Changed clauses:
   1. Clause 1: Introduction
