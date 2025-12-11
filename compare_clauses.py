@@ -9,7 +9,8 @@ content.
 
 The script works with plain-text files by default and optionally supports
 `.docx` files if the `python-docx` package is installed (`pip install
-python-docx`). See the README for usage examples.
+python-docx`) and `.pdf` files if the `pypdf` package is installed (`pip install
+pypdf`). See the README for usage examples.
 """
 
 from __future__ import annotations
@@ -27,6 +28,11 @@ try:
     from docx import Document  # type: ignore
 except ImportError:  # pragma: no cover - optional dependency
     Document = None  # type: ignore
+
+try:
+    from pypdf import PdfReader  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    PdfReader = None  # type: ignore
 
 
 @dataclass
@@ -206,6 +212,19 @@ def read_document(path: Path) -> str:
             )
         doc = Document(str(path))
         return "\n".join(paragraph.text for paragraph in doc.paragraphs)
+
+    if path.suffix.lower() == ".pdf":
+        if PdfReader is None:
+            raise RuntimeError(
+                "pypdf is required to read .pdf files. "
+                "Install it with `pip install pypdf`."
+            )
+        reader = PdfReader(str(path))
+        pages: List[str] = []
+        for page in reader.pages:
+            text = page.extract_text() or ""
+            pages.append(text)
+        return "\n".join(pages)
 
     return path.read_text(encoding="utf-8")
 

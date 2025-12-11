@@ -6,7 +6,7 @@ code is heavily commented and the README walks you through every step.
 
 ## What the script does
 
-1. Reads two documents (plain text or `.docx` if you install `python-docx`).
+1. Reads two documents (plain text, `.docx`, or `.pdf` with optional helpers).
 2. Detects clause headings such as:
    - `Clause 1: Introduction`
    - `2.0 Background`
@@ -22,11 +22,16 @@ code is heavily commented and the README walks you through every step.
 
 - Python 3.9 or newer already installed on your machine.
 - Optional: `python-docx` if you plan to read `.docx` files.
+- Optional: `pypdf` if you plan to read `.pdf` files.
 
 Install the optional dependency with:
 
 ```bash
 pip install python-docx
+```
+
+```bash
+pip install pypdf
 ```
 
 ## File structure
@@ -56,6 +61,15 @@ python compare_clauses.py doc_one.txt doc_two.txt --json
 ```
 
 ### Sample documents
+### Working with PDF files
+
+If either input file is a PDF, just pass the `.pdf` path to the script. The
+`pypdf` library extracts text page-by-page, so make sure your PDF contains
+real text (not only scanned images). Example:
+
+```bash
+python compare_clauses.py contract_v1.pdf contract_v2.pdf
+```
 
 `doc_one.txt`
 
@@ -133,5 +147,6 @@ can read the exact new wording without scanning the entire clause.
 - **`FileNotFoundError`:** Check the file names and paths you passed in.
 - **`python-docx` error:** Install the dependency or convert your `.docx`
   documents to plain text.
+- **`pypdf` error:** Install the dependency or export the PDF content as text.
 - **Headings not detected:** Ensure each clause uses a clear heading as shown
   in the samples.
