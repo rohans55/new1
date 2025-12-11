@@ -105,21 +105,13 @@ Additional clauses only in document 2:
 Same heading but content changed:
   - Clause 1: Introduction
   - Clause 3: Termination
-What changed (details):
+What changed:
   1. Clause 1: Introduction
-     Diff:
-       --- doc_one
-       +++ doc_two
-       @@
-       -This agreement covers how we will work together.
-       +This agreement covers how we will work together and collaborate.
+     doc 1: This agreement covers how we will work together.
+     doc 2: This agreement covers how we will work together and collaborate.
   2. Clause 3: Termination
-     Diff:
-       --- doc_one
-       +++ doc_two
-       @@
-       -Either party may terminate with 30 days written notice.
-       +Either party may terminate with 15 days notice.
+     doc 1: Either party may terminate with 30 days written notice.
+     doc 2: Either party may terminate with 15 days notice.
 ```
 
 ## How the detection works

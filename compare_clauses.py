@@ -296,13 +296,13 @@ def format_result(result: ComparisonResult) -> str:
         lines.append("Same heading but content changed: none")
 
     if result.changed:
-        lines.append("What changed (details):")
+        lines.append("What changed:")
         for idx, change in enumerate(result.changed, start=1):
+            doc_one_text = change["doc_one"].strip() or "(empty)"
+            doc_two_text = change["doc_two"].strip() or "(empty)"
             lines.append(f"  {idx}. {change['heading']}")
-            lines.append("     Diff:")
-            diff_lines = change["diff"].splitlines() or ["(whitespace-only differences)"]
-            for diff_line in diff_lines:
-                lines.append(f"       {diff_line}")
+            lines.append(f"     doc 1: {doc_one_text}")
+            lines.append(f"     doc 2: {doc_two_text}")
     else:
         lines.append("What changed: none")
 
